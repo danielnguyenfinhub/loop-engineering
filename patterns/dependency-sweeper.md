@@ -85,6 +85,22 @@ Prune merged/closed entries on every run.
 | Update touches dozens of transitive deps at once | Treat as high-risk. Only touch direct deps in the minimal-fix step. |
 | Notification spam | Only notify human for items in the "needs human" section of state. Everything else is silent or summarized daily. |
 
+## Cost Profile
+
+| Scenario | Tokens/run | Notes |
+|----------|------------|-------|
+| No-op (nothing to bump) | ~5k | Exit when scan is clean |
+| Triage / scan | ~60k | Audit + Dependabot + lockfile scan |
+| Patch + verify (L2) | ~300k | Worktree + full test suite |
+
+**Cadence**: 6h–1d · **Tier**: medium · **Suggested daily cap**: 500k tokens
+
+```bash
+npx @cobusgreyling/loop-cost --pattern dependency-sweeper --level L2
+```
+
+Verifier runs (`npm ci && npm test`) dominate cost — cap attempts per package in `loop-budget.md`.
+
 ## Success Metrics
 
 - Median time from "vulnerability published / Dependabot PR opened" → merged (for items the loop touched).

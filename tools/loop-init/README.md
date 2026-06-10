@@ -25,6 +25,12 @@ See [docs/RELEASE.md](../../docs/RELEASE.md) for npm publish tags. The published
 
 L2 patterns (`ci-sweeper`, `dependency-sweeper`) also copy `minimal-fix` and `loop-verifier` templates when missing from the starter.
 
+Every scaffold also creates:
+
+- `loop-budget.md` — pattern-specific daily caps and kill switch
+- `loop-run-log.md` — append-only run history
+- `loop-budget` skill — runtime budget guard at start/end of each run
+
 ## Tools
 
 - `grok` (default)
@@ -40,8 +46,9 @@ cd tools/loop-init && npm ci && npm test
 node dist/cli.js /path/to/project --pattern daily-triage --tool grok
 ```
 
-Pair with `loop-audit` after scaffolding:
+Pair with `loop-audit` and `loop-cost` after scaffolding:
 
 ```bash
+npx @cobusgreyling/loop-cost --pattern daily-triage --level L1
 npx @cobusgreyling/loop-audit . --suggest
 ```

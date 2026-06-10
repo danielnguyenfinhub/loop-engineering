@@ -6,6 +6,7 @@ This repo ships two public npm packages from `tools/`:
 |---------|-----------|-------------|
 | `@cobusgreyling/loop-audit` | `tools/loop-audit` | `loop-audit-v*` |
 | `@cobusgreyling/loop-init` | `tools/loop-init` | `loop-init-v*` |
+| `@cobusgreyling/loop-cost` | `tools/loop-cost` | `loop-cost-v*` (add workflow when publishing) |
 
 ## One-time setup (trusted publishing — recommended)
 

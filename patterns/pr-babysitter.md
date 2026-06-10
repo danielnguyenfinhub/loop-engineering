@@ -83,6 +83,22 @@ Example state entry:
 - **Stale state** → The loop should prune closed/merged PRs on every run.
 - **Notification fatigue** → Use selective notifications (only when human action is truly required).
 
+## Cost Profile
+
+| Scenario | Tokens/run | Notes |
+|----------|------------|-------|
+| No-op (empty watchlist) | ~3k | **Target most runs** — exit early |
+| Triage pass | ~80k | PR + CI status scan |
+| Fix attempt (L2) | ~250k | Worktree + minimal-fix + verifier |
+
+**Cadence**: 5m–15m · **Tier**: high · **Suggested daily cap**: 2M tokens · **Early exit required**
+
+```bash
+npx @cobusgreyling/loop-cost --pattern pr-babysitter --cadence 10m --level L1 --conservative
+```
+
+High cadence without early-exit burns tokens fast. Use `loop-budget` skill + `loop-run-log.md`.
+
 ## Success Metrics
 
 - Average time from "ready for review" to merge (for PRs the loop touched).

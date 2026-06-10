@@ -63,6 +63,12 @@ npm publish --access public
 | MCP / connectors        | Mentions or config files |
 | Worktree evidence       | Isolation patterns in docs |
 | patterns/registry.yaml  | Machine index for tooling |
+| loop-budget.md          | Token caps and kill switch |
+| loop-run-log.md         | Append-only run history |
+| LOOP.md budget section  | Cadence limits documented in config |
+| loop-budget skill       | Runtime budget guard |
+
+L3 requires budget doc + run log + LOOP.md budget section (in addition to verifier + state).
 
 ## Levels
 

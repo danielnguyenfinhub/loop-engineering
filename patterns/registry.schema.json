@@ -79,6 +79,24 @@
           "token_cost": {
             "type": "string",
             "enum": ["low", "medium", "high", "very-high"]
+          },
+          "cost": {
+            "type": "object",
+            "required": [
+              "tokens_noop",
+              "tokens_report",
+              "tokens_action",
+              "suggested_daily_cap",
+              "early_exit_required"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "tokens_noop": { "type": "integer", "minimum": 1000 },
+              "tokens_report": { "type": "integer", "minimum": 1000 },
+              "tokens_action": { "type": "integer", "minimum": 1000 },
+              "suggested_daily_cap": { "type": "integer", "minimum": 10000 },
+              "early_exit_required": { "type": "boolean" }
+            }
           }
         }
       }

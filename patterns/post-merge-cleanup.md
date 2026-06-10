@@ -91,6 +91,22 @@ Last run: 2026-06-09 22:00 UTC
 | Noise from every TODO | Only act on TODOs with merge context or linked tickets |
 | Competing with feature work | Run off-peak; cap auto-PRs per day (e.g. 2) |
 
+## Cost Profile
+
+| Scenario | Tokens/run | Notes |
+|----------|------------|-------|
+| No-op | ~5k | No recent merges to scan |
+| Scan + prioritize | ~40k | Merge list + TODO scan |
+| Small fix (L2) | ~150k | Worktree + verifier |
+
+**Cadence**: 1d–6h · **Tier**: low · **Suggested daily cap**: 200k tokens
+
+```bash
+npx @cobusgreyling/loop-cost --pattern post-merge-cleanup --cadence 1d --level L1
+```
+
+Run off-peak. Cap auto-PRs per day in `loop-budget.md`.
+
 ## Success Metrics
 
 - Reduction in "we forgot to remove X after merge" incidents

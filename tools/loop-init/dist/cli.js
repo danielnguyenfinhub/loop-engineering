@@ -34,6 +34,15 @@ const STATE_FILES = {
     'post-merge-cleanup': 'post-merge-state.md',
     'changelog-drafter': 'changelog-drafter-state.md',
 };
+/** Mirrors patterns/registry.yaml cost caps — used when scaffolding observability files. */
+const PATTERN_BUDGET = {
+    'daily-triage': { name: 'Daily Triage', maxRunsPerDay: 2, dailyCap: 100_000, maxSpawnsL1: 0, maxSpawnsL2: 2 },
+    'pr-babysitter': { name: 'PR Babysitter', maxRunsPerDay: 288, dailyCap: 2_000_000, maxSpawnsL1: 0, maxSpawnsL2: 3 },
+    'ci-sweeper': { name: 'CI Sweeper', maxRunsPerDay: 96, dailyCap: 1_000_000, maxSpawnsL1: 0, maxSpawnsL2: 3 },
+    'dependency-sweeper': { name: 'Dependency Sweeper', maxRunsPerDay: 4, dailyCap: 500_000, maxSpawnsL1: 0, maxSpawnsL2: 3 },
+    'post-merge-cleanup': { name: 'Post-Merge Cleanup', maxRunsPerDay: 1, dailyCap: 200_000, maxSpawnsL1: 0, maxSpawnsL2: 2 },
+    'changelog-drafter': { name: 'Changelog Drafter', maxRunsPerDay: 1, dailyCap: 100_000, maxSpawnsL1: 0, maxSpawnsL2: 2 },
+};
 function parseArgs(argv) {
     let pattern = 'daily-triage';
     let tool = 'grok';
@@ -125,6 +134,62 @@ async function copyL2Templates(pattern, tool, targetDir, templatesRoot, dryRun) 
     if (L2_PATTERNS.has(pattern) || pattern === 'dependency-sweeper') {
         await copyTemplateVerifier(templatesRoot, targetDir, tool, dryRun);
     }
+}
+function formatTokenCap(n) {
+    if (n >= 1_000_000)
+        return `${n / 1_000_000}M`;
+    if (n >= 1_000)
+        return `${n / 1_000}k`;
+    return String(n);
+}
+function buildLoopBudgetMd(pattern) {
+    const b = PATTERN_BUDGET[pattern];
+    return `# Loop Budget — YOUR_PROJECT
+
+> Primary loop: **${b.name}** (scaffolded by loop-init)
+
+## Daily limits
+
+| Loop | Max runs/day | Max tokens/day | Max sub-agent spawns/run |
+|------|--------------|----------------|--------------------------|
+| ${b.name} | ${b.maxRunsPerDay} | ${formatTokenCap(b.dailyCap)} | ${b.maxSpawnsL1} (L1) / ${b.maxSpawnsL2} (L2) |
+
+## On budget exceed
+
+1. Pause schedulers (\`scheduler_delete\` or disable automations)
+2. Append event to \`loop-run-log.md\`
+3. Notify human (Slack / issue / STATE.md High Priority)
+
+## Kill switch
+
+- Command or issue label: \`loop-pause-all\`
+- Resume only after human clears the flag in STATE.md
+
+## Estimate spend
+
+\`\`\`bash
+npx @cobusgreyling/loop-cost --pattern ${pattern}
+\`\`\`
+`;
+}
+async function scaffoldObservability(pattern, tool, targetDir, templatesRoot, dryRun) {
+    const budgetPath = path.join(targetDir, 'loop-budget.md');
+    const runLogTemplate = path.join(templatesRoot, 'loop-run-log.md.template');
+    const runLogPath = path.join(targetDir, 'loop-run-log.md');
+    if (!(await exists(budgetPath))) {
+        const content = buildLoopBudgetMd(pattern);
+        if (dryRun) {
+            console.log(`  would write: ${budgetPath}`);
+        }
+        else {
+            await writeFile(budgetPath, content);
+            console.log(`  created: loop-budget.md`);
+        }
+    }
+    if (!(await exists(runLogPath))) {
+        await copyFile(runLogTemplate, runLogPath, dryRun);
+    }
+    await copyTemplateSkill(templatesRoot, 'SKILL.md.loop-budget', targetDir, tool, 'loop-budget', dryRun);
 }
 async function copyFile(src, dest, dryRun) {
     if (!(await exists(src)))
@@ -267,6 +332,7 @@ Examples:
         await copyFile(loopMd, path.join(targetDir, 'LOOP.md'), dryRun);
     }
     await copyL2Templates(pattern, tool, targetDir, templatesRoot, dryRun);
+    await scaffoldObservability(pattern, tool, targetDir, templatesRoot, dryRun);
     if (!dryRun && !(await exists(path.join(targetDir, 'AGENTS.md')))) {
         const agentsTemplate = `# AGENTS.md
 
@@ -283,6 +349,7 @@ npm run lint
     }
     console.log('\n=== Next steps ===');
     console.log(`  npx @cobusgreyling/loop-audit ${target === '.' ? '.' : target} --suggest`);
+    console.log(`  npx @cobusgreyling/loop-cost --pattern ${pattern}`);
     console.log(`  First loop command (${tool}):\n  ${firstLoopCommand(pattern, tool)}\n`);
 }
 async function readDirNames(dir) {

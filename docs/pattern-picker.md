@@ -16,8 +16,28 @@ flowchart TD
     J -->|yes| K[Post-Merge Cleanup]
     J -->|no| L{Release notes / changelog stale?}
     L -->|yes| M[Changelog Drafter]
-    L -->|no| G
+    L -->|no| N{Tight token budget?}
+    N -->|yes| M
+    N -->|no| G
 ```
+
+## Cost-aware picks
+
+Estimate before you schedule:
+
+```bash
+npx @cobusgreyling/loop-cost --pattern <id> --level L1
+npx @cobusgreyling/loop-init . --pattern daily-triage --tool grok   # scaffolds loop-budget.md + loop-run-log.md
+```
+
+| Situation | Prefer | Avoid (until budget + early-exit) |
+|-----------|--------|-----------------------------------|
+| Hobby / tight plan | Changelog Drafter, Daily Triage (L1), Post-Merge | CI Sweeper at 5m, PR Babysitter at 5m |
+| Active CI fires | CI Sweeper at **15m+** with early-exit | Full triage every 5m when main is green |
+| Many open PRs | PR Babysitter at 10–15m, L1 watch first | L2 fix loops on every tick |
+| Release week | Changelog Drafter daily | Dependency Sweeper + CI Sweeper unattended |
+
+`loop-audit` caps **L3** until `loop-budget.md`, `loop-run-log.md`, and a `LOOP.md` budget section exist.
 
 ## Quick reference
 

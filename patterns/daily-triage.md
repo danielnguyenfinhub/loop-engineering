@@ -91,6 +91,22 @@ Fields the loop must update every run:
 | Auto-fix on wrong priority | Start report-only; add explicit effort/risk gates |
 | Missed overnight failures | Add `fireImmediately: true` or run at start of day + mid-day |
 
+## Cost Profile
+
+| Scenario | Tokens/run | Notes |
+|----------|------------|-------|
+| No-op | ~5k | Nothing actionable in state |
+| Full triage (L1) | ~50k | CI + issues + commits scan |
+| Assisted fix (L2) | ~200k | Worktree + implementer + verifier |
+
+**Cadence**: 1d–2h · **Tier**: low · **Suggested daily cap**: 100k tokens
+
+```bash
+npx @cobusgreyling/loop-cost --pattern daily-triage --cadence 1d --level L1
+```
+
+Scaffold `loop-budget.md` and `loop-run-log.md` with `loop-init`. See [operating-loops.md](../docs/operating-loops.md).
+
 ## Success Metrics
 
 - Time from "something broke" to "human knows about it"

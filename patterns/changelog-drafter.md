@@ -97,6 +97,22 @@ The loop should prune entries once a release is tagged/published and the draft i
 | Tone mismatch with project | Provide a short "Release voice" section in AGENTS.md or a project skill that the drafter reads. |
 | Accidentally publishing | Never grant the loop write access to tags or the live CHANGELOG without an explicit human gate + PR. |
 
+## Cost Profile
+
+| Scenario | Tokens/run | Notes |
+|----------|------------|-------|
+| No-op (no new merges) | ~5k | Exit when nothing since last tag |
+| Scan + categorize | ~35k | PR/commit scan |
+| Draft + verify | ~80k | Categorized release notes draft |
+
+**Cadence**: 1d · **Tier**: low · **Suggested daily cap**: 100k tokens
+
+```bash
+npx @cobusgreyling/loop-cost --pattern changelog-drafter --level L1
+```
+
+One of the cheapest high-value loops. Safe to run alongside others.
+
 ## Success Metrics
 
 - Time from "last merge" to "published release notes" (target: < 1 day for patch releases)

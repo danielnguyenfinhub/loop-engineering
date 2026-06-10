@@ -23,6 +23,7 @@ const LOOP_SKILL_NAMES = [
 const SAFETY_FILES = ['safety.md', 'docs/safety.md', 'SECURITY.md'];
 const MCP_FILES = ['.mcp.json', 'mcp.json', '.mcp/config.json'];
 const WORKTREE_HINTS = ['worktree', 'worktrees', 'git worktree'];
+const BUDGET_HINTS = [/budget/i, /max tokens/i, /token cap/i, /kill switch/i, /loop-pause-all/i];
 async function fileExists(p) {
     try {
         await stat(p);
@@ -101,9 +102,20 @@ export function computeScore(signals) {
         score += 3;
     if (signals.registry.present)
         score += 2;
+    if (signals.cost.budgetDoc)
+        score += 3;
+    if (signals.cost.runLog)
+        score += 3;
+    if (signals.cost.loopMdBudget)
+        score += 2;
+    if (signals.cost.budgetSkill)
+        score += 2;
     score = Math.min(100, Math.max(0, score));
+    const costReady = signals.cost.budgetDoc &&
+        signals.cost.runLog &&
+        signals.cost.loopMdBudget;
     let level = 'L0';
-    if (score >= 78 && signals.verifier.present && signals.stateFile.present)
+    if (score >= 78 && signals.verifier.present && signals.stateFile.present && costReady)
         level = 'L3';
     else if (score >= 58 && signals.triage.present)
         level = 'L2';
@@ -111,10 +123,15 @@ export function computeScore(signals) {
         level = 'L1';
     else
         level = 'L0';
-    const assessment = score >= 82 ? 'Strong loop readiness — good candidate for L3 with explicit gates.' :
-        score >= 62 ? 'Good foundation — add missing verifier + safety docs for L3.' :
-            score >= 42 ? 'Early loop setup — focus on L1 state + triage before enabling actions.' :
-                'Not loop-ready — start with a starter from this repo (minimal-loop or pr-babysitter).';
+    const assessment = score >= 82 && costReady
+        ? 'Strong loop readiness — good candidate for L3 with explicit gates.'
+        : score >= 82 && !costReady
+            ? 'Strong signals but missing cost observability (loop-budget.md, loop-run-log.md, LOOP.md budget) — add before L3.'
+            : score >= 62
+                ? 'Good foundation — add missing verifier + safety docs for L3.'
+                : score >= 42
+                    ? 'Early loop setup — focus on L1 state + triage before enabling actions.'
+                    : 'Not loop-ready — start with a starter from this repo (minimal-loop or pr-babysitter).';
     return { score, level, assessment };
 }
 export async function auditProject(target) {
@@ -182,6 +199,22 @@ export async function auditProject(target) {
         catch { }
     }
     const registryPresent = await fileExists(path.join(root, 'patterns', 'registry.yaml'));
+    const budgetDoc = await fileExists(path.join(root, 'loop-budget.md'));
+    const runLog = await fileExists(path.join(root, 'loop-run-log.md'));
+    const loopMdBudget = BUDGET_HINTS.some((re) => re.test(loopMdContent));
+    const budgetSkillDirs = [
+        path.join(root, 'skills', 'loop-budget'),
+        path.join(root, '.grok', 'skills', 'loop-budget'),
+        path.join(root, '.claude', 'skills', 'loop-budget'),
+        path.join(root, '.codex', 'skills', 'loop-budget'),
+    ];
+    let budgetSkill = false;
+    for (const dir of budgetSkillDirs) {
+        if (await fileExists(path.join(dir, 'SKILL.md'))) {
+            budgetSkill = true;
+            break;
+        }
+    }
     const signals = {
         stateFile: { present: statePaths.length > 0, paths: statePaths },
         loopConfig: { present: loopMd, path: loopMd ? 'LOOP.md' : undefined },
@@ -196,6 +229,7 @@ export async function auditProject(target) {
         mcp: { present: mcpPresent },
         worktreeEvidence: { present: worktreeEvidence },
         registry: { present: registryPresent },
+        cost: { budgetDoc, runLog, loopMdBudget, budgetSkill },
     };
     if (!signals.stateFile.present) {
         findings.push({ level: 'fail', message: 'No state file (STATE.md or pattern-specific state).' });
@@ -260,7 +294,41 @@ export async function auditProject(target) {
         findings.push({ level: 'warn', message: 'No patterns/registry.yaml (machine-readable index for future tools).' });
         recommendations.push('Add patterns/registry.yaml following the existing format');
     }
+    if (!signals.cost.budgetDoc) {
+        findings.push({ level: 'warn', message: 'No loop-budget.md — token caps and kill switch undocumented.' });
+        recommendations.push('Scaffold with loop-init or copy templates/loop-budget.md.template');
+    }
+    else {
+        findings.push({ level: 'ok', message: 'loop-budget.md present.' });
+    }
+    if (!signals.cost.runLog) {
+        findings.push({ level: 'warn', message: 'No loop-run-log.md — run history not persisted.' });
+        recommendations.push('Copy templates/loop-run-log.md.template to loop-run-log.md');
+    }
+    else {
+        findings.push({ level: 'ok', message: 'loop-run-log.md present.' });
+    }
+    if (!signals.cost.loopMdBudget) {
+        findings.push({ level: 'warn', message: 'LOOP.md does not mention budget, token caps, or kill switch.' });
+        recommendations.push('Add a Budget section to LOOP.md (see starters/*/LOOP.md)');
+    }
+    if (!signals.cost.budgetSkill) {
+        findings.push({ level: 'warn', message: 'No loop-budget skill — budget checks are not automated at runtime.' });
+        recommendations.push('Add loop-budget skill via loop-init or templates/SKILL.md.loop-budget');
+    }
+    else {
+        findings.push({ level: 'ok', message: 'loop-budget skill present.' });
+    }
     const { score, level, assessment } = computeScore(signals);
+    const costReady = signals.cost.budgetDoc &&
+        signals.cost.runLog &&
+        signals.cost.loopMdBudget;
+    if (score >= 78 && signals.verifier.present && signals.stateFile.present && !costReady) {
+        findings.push({
+            level: 'warn',
+            message: 'Score qualifies for L3 but cost observability is incomplete — capped at L2 until budget + run log + LOOP.md budget exist.',
+        });
+    }
     return {
         target: root,
         score,

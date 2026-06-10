@@ -43,6 +43,12 @@ export interface LoopSignals {
     registry: {
         present: boolean;
     };
+    cost: {
+        budgetDoc: boolean;
+        runLog: boolean;
+        loopMdBudget: boolean;
+        budgetSkill: boolean;
+    };
 }
 export interface Finding {
     level: 'ok' | 'warn' | 'fail';

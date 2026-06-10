@@ -13,8 +13,11 @@
 
 ## Budget
 
-- Max sub-agent spawns per run: 0 (L1)
-- Review STATE.md daily
+- Max sub-agent spawns per run: 0 (L1) / 2 (L2)
+- Max tokens/day: 100k (see `loop-budget.md`)
+- Append each run to `loop-run-log.md`; use `loop-budget` skill at start/end
+- Kill switch: `loop-pause-all` — pause schedulers and notify human
+- Estimate: `npx @cobusgreyling/loop-cost --pattern daily-triage`
 
 ## Links
 

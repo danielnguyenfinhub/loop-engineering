@@ -28,6 +28,7 @@ temp/
 build/
 **/node_modules/
 !tools/loop-audit/dist/
+!tools/loop-cost/dist/
 *.egg-info/
 
 # State files that should not be committed in consumer projects (reference repo dogfoods STATE.md)

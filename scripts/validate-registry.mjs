@@ -44,6 +44,19 @@ function validatePattern(p, index) {
   if (!Array.isArray(p.human_gates) || p.human_gates.length === 0) fail(`${prefix}.human_gates must be non-empty`);
   if (p.week_one_mode && !VALID_MODES.has(p.week_one_mode)) fail(`${prefix}.week_one_mode invalid`);
   if (p.token_cost && !VALID_COST.has(p.token_cost)) fail(`${prefix}.token_cost invalid`);
+  if (!p.cost) fail(`${prefix} missing required field: cost`);
+  const costKeys = ['tokens_noop', 'tokens_report', 'tokens_action', 'suggested_daily_cap', 'early_exit_required'];
+  for (const key of costKeys) {
+    if (!(key in p.cost)) fail(`${prefix}.cost missing field: ${key}`);
+  }
+  for (const key of ['tokens_noop', 'tokens_report', 'tokens_action', 'suggested_daily_cap']) {
+    if (typeof p.cost[key] !== 'number' || p.cost[key] < 1000) {
+      fail(`${prefix}.cost.${key} must be a positive integer`);
+    }
+  }
+  if (typeof p.cost.early_exit_required !== 'boolean') {
+    fail(`${prefix}.cost.early_exit_required must be boolean`);
+  }
 }
 
 async function main() {

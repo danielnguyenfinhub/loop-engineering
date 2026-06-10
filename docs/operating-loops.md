@@ -4,6 +4,15 @@ Running a loop is operations work. This doc covers cost, logging, metrics, and w
 
 ## Token & Cost Budgeting
 
+Estimate before scheduling:
+
+```bash
+npx @cobusgreyling/loop-cost --pattern <id> --cadence <interval> --level L1
+npx @cobusgreyling/loop-init . --pattern <id>   # scaffolds loop-budget.md + loop-run-log.md + loop-budget skill
+```
+
+`loop-audit` scores cost observability and caps L3 until budget + run log + LOOP.md budget section exist.
+
 Rough planning factors:
 
 | Factor | Impact |

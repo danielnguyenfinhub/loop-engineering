@@ -20,6 +20,7 @@ function emptySignals() {
     mcp: { present: false },
     worktreeEvidence: { present: false },
     registry: { present: false },
+    cost: { budgetDoc: false, runLog: false, loopMdBudget: false, budgetSkill: false },
   };
 }
 
@@ -62,9 +63,27 @@ test('computeScore: L3 requires verifier and high score', () => {
   s.mcp = { present: true };
   s.worktreeEvidence = { present: true };
   s.registry = { present: true };
+  s.cost = { budgetDoc: true, runLog: true, loopMdBudget: true, budgetSkill: true };
   const { level, score } = computeScore(s);
   assert.equal(level, 'L3');
   assert.ok(score >= 78);
+});
+
+test('computeScore: L3 blocked without cost observability', () => {
+  const s = emptySignals();
+  s.stateFile = { present: true, paths: ['STATE.md'] };
+  s.triage = { present: true };
+  s.loopConfig = { present: true, path: 'LOOP.md' };
+  s.agentsMd = { present: true };
+  s.skills = { count: 3, loopSkills: ['loop-triage', 'minimal-fix', 'loop-verifier'] };
+  s.verifier = { present: true };
+  s.safety = { loopMdMentionsSafety: true, safetyDocPresent: true };
+  s.github = { present: true, workflows: true };
+  s.mcp = { present: true };
+  s.worktreeEvidence = { present: true };
+  s.registry = { present: true };
+  const { level } = computeScore(s);
+  assert.equal(level, 'L2');
 });
 
 test('auditProject: empty directory scores low', async () => {

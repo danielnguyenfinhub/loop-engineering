@@ -93,6 +93,22 @@ Use `/goal` for focused "get green" sessions; use scheduled sweeper for ongoing 
 | Token burn on red main | Pause loop after N failures; batch fixes |
 | Wrong branch targeted | Explicit branch allowlist in skill |
 
+## Cost Profile
+
+| Scenario | Tokens/run | Notes |
+|----------|------------|-------|
+| No-op (CI green) | ~5k | **Required** — do not run full sweeper when green |
+| Triage / classify | ~50k | Log parse + failure classification |
+| Fix attempt (L2) | ~200k | Worktree + implementer + verifier |
+
+**Cadence**: 5m–15m · **Tier**: very-high · **Suggested daily cap**: 1M tokens · **Early exit required**
+
+```bash
+npx @cobusgreyling/loop-cost --pattern ci-sweeper --cadence 15m --level L2
+```
+
+At 15m cadence without early-exit, worst-case spend exceeds 5M tokens/day. Never run full action paths on every tick.
+
 ## Success Metrics
 
 - Mean time to first proposed fix after CI goes red

@@ -45,7 +45,8 @@ A loop is a recursive goal: you define a purpose and the AI iterates (often with
 | [Patterns](patterns/README.md) | 6 production patterns including the new low-risk Changelog Drafter |
 | [Starters](starters/) | Clone-and-run kits (Grok, Claude Code, Codex) |
 | [loop-audit](tools/loop-audit/) | Loop Readiness Score CLI — `npx @cobusgreyling/loop-audit` |
-| [loop-init](tools/loop-init/) | Scaffold starters — `npx @cobusgreyling/loop-init` |
+| [loop-init](tools/loop-init/) | Scaffold starters + budget/run-log — `npx @cobusgreyling/loop-init` |
+| [loop-cost](tools/loop-cost/) | Token spend estimator — `npx @cobusgreyling/loop-cost` |
 | [Stories](stories/) | Real wins and honest failures |
 
 ## Why This Matters
@@ -117,13 +118,16 @@ Machine-readable index: [patterns/registry.yaml](patterns/registry.yaml) (now 6 
 # 1. Scaffold a starter (or copy manually — see starters/)
 npx @cobusgreyling/loop-init . --pattern daily-triage --tool grok
 
-# 2. Audit readiness
+# 2. Estimate token spend for your cadence
+npx @cobusgreyling/loop-cost --pattern daily-triage --level L1
+
+# 3. Audit readiness (budget + run-log now scored)
 npx @cobusgreyling/loop-audit . --suggest
 
-# 3. See scores climb: empty → L1 → L2
+# 4. See scores climb: empty → L1 → L2
 bash scripts/before-after-demo.sh
 
-# 4. Start report-only (Grok example)
+# 5. Start report-only (Grok example)
 /loop 1d Run loop-triage. Update STATE.md. No auto-fix in week one.
 ```
 
@@ -132,6 +136,7 @@ Packages publish from tagged releases — see [docs/RELEASE.md](docs/RELEASE.md)
 ```bash
 cd tools/loop-init && npm ci && npm test && node dist/cli.js /path/to/project --pattern daily-triage --tool grok
 cd tools/loop-audit && npm ci && npm test && node dist/cli.js /path/to/project --suggest
+cd tools/loop-cost && npm ci && npm test && node dist/cli.js --pattern ci-sweeper --cadence 15m
 ```
 
 Phased rollout: **L1 report → L2 assisted fixes → L3 unattended** — see [loop-design-checklist](docs/loop-design-checklist.md).

@@ -51,6 +51,13 @@ See [docs/multi-loop.md](docs/multi-loop.md). Priority: CI Sweeper → PR Babysi
 - GitHub MCP read-only for issue/PR discovery
 - Scope connectors to read + comment until the loop is trusted
 
+## Budget & Observability
+
+- Token caps: `loop-budget.md`
+- Run history: `loop-run-log.md`
+- Estimate: `npx @cobusgreyling/loop-cost --pattern daily-triage`
+- Kill switch: `loop-pause-all` label or flag in `STATE.md`
+
 ## Safety & Gates (this repo)
 
 - No auto-merge on main except trivial dependency patches (allowlist + verifier)

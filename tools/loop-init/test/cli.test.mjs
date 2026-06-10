@@ -41,6 +41,9 @@ test('loop-init scaffolds ci-sweeper with bundled assets', async () => {
     await access(path.join(dir, '.grok', 'skills', 'ci-triage', 'SKILL.md'));
     await access(path.join(dir, '.grok', 'skills', 'minimal-fix', 'SKILL.md'));
     await access(path.join(dir, '.grok', 'skills', 'loop-verifier', 'SKILL.md'));
+    await access(path.join(dir, 'loop-budget.md'));
+    await access(path.join(dir, 'loop-run-log.md'));
+    await access(path.join(dir, '.grok', 'skills', 'loop-budget', 'SKILL.md'));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

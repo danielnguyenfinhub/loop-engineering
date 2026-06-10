@@ -26,3 +26,10 @@ for (const dir of ['starters', 'templates']) {
   await cp(src, dest, { recursive: true });
   console.log(`bundled ${dir}/ → tools/loop-init/${dir}/`);
 }
+
+const registrySrc = path.join(REPO_ROOT, 'patterns', 'registry.yaml');
+const registryDest = path.join(PACKAGE_ROOT, 'registry.yaml');
+if (await exists(registrySrc)) {
+  await cp(registrySrc, registryDest);
+  console.log('bundled patterns/registry.yaml → tools/loop-init/registry.yaml');
+}

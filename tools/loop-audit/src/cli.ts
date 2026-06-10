@@ -56,6 +56,8 @@ try {
     console.log('  # All tools:');
     console.log('  cp starters/minimal-loop/STATE.md.example STATE.md   # or -claude / -codex variant');
     console.log('  cp starters/minimal-loop/LOOP.md .');
+    console.log('  cp templates/loop-budget.md.template loop-budget.md');
+    console.log('  cp templates/loop-run-log.md.template loop-run-log.md');
     console.log('');
     console.log('  # Maker/checker verifier (Grok / generic skills dir)');
     console.log('  mkdir -p .grok/skills/loop-verifier');
@@ -70,6 +72,7 @@ try {
     console.log('');
     console.log('  # Or scaffold automatically:');
     console.log('  npx @cobusgreyling/loop-init . --pattern daily-triage --tool grok');
+    console.log('  npx @cobusgreyling/loop-cost --pattern daily-triage --level L1');
     console.log('');
     console.log('See docs/loop-design-checklist.md and patterns/ for full guidance.');
   }
