@@ -1,6 +1,6 @@
 {
   "name": "@cobusgreyling/loop-init",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Scaffold loop engineering patterns and starters into any project. Supports Grok, Claude Code, Codex and more. npx @cobusgreyling/loop-init . --pattern daily-triage --tool grok",
   "type": "module",
   "bin": {
