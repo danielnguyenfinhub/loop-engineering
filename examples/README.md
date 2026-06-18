@@ -22,6 +22,7 @@ Start with [primitives-matrix.md](../docs/primitives-matrix.md) to map capabilit
 | Post-Merge Cleanup | [grok/post-merge-cleanup.md](./grok/post-merge-cleanup.md) | [claude-code/post-merge-cleanup.md](./claude-code/post-merge-cleanup.md) | [codex/post-merge-cleanup.md](./codex/post-merge-cleanup.md) | [github-actions/post-merge-cleanup.yml](./github-actions/post-merge-cleanup.yml) |
 | Dependency Sweeper | [grok/dependency-sweeper.md](./grok/dependency-sweeper.md) | [claude-code/dependency-sweeper.md](./claude-code/dependency-sweeper.md) | [codex/dependency-sweeper.md](./codex/dependency-sweeper.md) | [github-actions/dependency-sweeper.yml](./github-actions/dependency-sweeper.yml) |
 | Changelog Drafter | [grok/changelog-drafter.md](./grok/changelog-drafter.md) | [claude-code/changelog-drafter.md](./claude-code/changelog-drafter.md) | [codex/changelog-drafter.md](./codex/changelog-drafter.md) | [github-actions/changelog-drafter.yml](./github-actions/changelog-drafter.yml) |
+| Issue Triage | [grok/issue-triage.md](./grok/issue-triage.md) | [claude-code/issue-triage.md](./claude-code/issue-triage.md) | [codex/issue-triage.md](./codex/issue-triage.md) | — (see daily-triage.yml as template) |
 
 L2 patterns ship multi-tool skills inside one starter folder — see `starters/<pattern>/`.
 

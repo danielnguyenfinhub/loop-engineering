@@ -11,7 +11,7 @@ Real-world loop engineering — including failures. Contribute yours via [CONTRI
 | [multi-loop-collision.md](./multi-loop-collision.md) | Multi-loop | Branch lock + collision detection |
 | [l1-to-l2-graduation.md](./l1-to-l2-graduation.md) | Daily Triage | Calibration before auto-fix |
 | [changelog-drafter-week-one.md](./changelog-drafter-week-one.md) | Changelog Drafter | Low-risk, high-ROI L1 win |
-| [post-merge-cleanup-honest-win.md](./post-merge-cleanup-honest-win.md) | Post-Merge Cleanup | Off-peak cadence + L1 report value |
+| [post-merge-cleanup-honest-win.md](./post-merge-cleanup-honest-win.md) | Post-Merge Cleanup | Off-peak cadence; verifier caught doc/API drift; bot-merge noise |
 
 **Template for new stories:**
 

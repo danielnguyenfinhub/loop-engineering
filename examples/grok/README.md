@@ -7,6 +7,7 @@ Native primitives: `/loop`, `scheduler_create`, worktree isolation, skills, MCP,
 | Example | Pattern |
 |---------|---------|
 | [daily-triage.md](./daily-triage.md) | Daily Triage |
+| [issue-triage.md](./issue-triage.md) | Issue Triage (L1 propose-only) |
 
 ## Common Commands
 
