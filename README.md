@@ -28,6 +28,8 @@
 
 **Loop engineering is replacing yourself as the person who prompts the agent. You design the system that does it instead.**
 
+**New here?** [Quickstart (5 min)](docs/QUICKSTART.md) · [Interactive picker](https://cobusgreyling.github.io/loop-engineering/#interactive)
+
 For developers using Grok, Claude Code, Codex, Cursor, and other AI coding agents.
 
 A loop is a recursive goal: you define a purpose and the AI iterates (often with sub-agents, verification, and external state) until the goal is complete or the loop decides to hand off to you.
@@ -48,6 +50,7 @@ A loop is a recursive goal: you define a purpose and the AI iterates (often with
 
 ## Contents
 
+- [Quickstart (5 min)](docs/QUICKSTART.md)
 - [Quick Links](#quick-links)
 - [Why This Matters](#why-this-matters)
 - [The Five Building Blocks + Memory](#the-five-building-blocks--memory)
@@ -64,7 +67,8 @@ A loop is a recursive goal: you define a purpose and the AI iterates (often with
 
 | Start here | Description |
 |------------|-------------|
-| [Loop Engineering essay](https://cobusgreyling.substack.com/p/loop-engineering) | The concept, primitives, and Grok mapping — **read this first** |
+| [Quickstart (5 min)](docs/QUICKSTART.md) | Scaffold → cost check → audit → first loop — **start here if you just landed** |
+| [Loop Engineering essay](https://cobusgreyling.substack.com/p/loop-engineering) | The concept, primitives, and Grok mapping — read for the why |
 | [Pattern Picker](docs/pattern-picker.md) | Which loop to run first — **start here if unsure** |
 | [Primitives Matrix](docs/primitives-matrix.md) | Grok vs Claude Code vs Codex — bookmark this |
 | [Loop Design Checklist](docs/loop-design-checklist.md) | Ship readiness rubric |

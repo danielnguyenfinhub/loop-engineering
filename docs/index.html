@@ -37,6 +37,7 @@ title: Loop Engineering — Showcase
         <li><a href="#primitives">Primitives</a></li>
         <li><a href="#interactive">Picker</a></li>
         <li><a href="#start">Get Started</a></li>
+        <li><a href="https://github.com/cobusgreyling/loop-engineering/blob/main/docs/QUICKSTART.md">Quickstart</a></li>
         <li><a href="#adopters">Adopters</a></li>
         <li><a href="https://cobusgreyling.substack.com/p/loop-engineering">Essay</a></li>
         <li><a href="https://github.com/cobusgreyling/loop-engineering">GitHub</a></li>
@@ -272,7 +273,7 @@ title: Loop Engineering — Showcase
 <section id="start" class="wrap">
   <p class="section-label">5 minutes</p>
   <h2 class="section-title">Get started</h2>
-  <p class="section-desc">Clone a starter, audit your project, run report-only for one week.</p>
+  <p class="section-desc">Scaffold in your repo, audit readiness, run report-only for one week. <a href="https://github.com/cobusgreyling/loop-engineering/blob/main/docs/QUICKSTART.md">Full quickstart guide →</a></p>
   <div class="code-block">
     <div class="code-header">
       <div class="code-dots"><span></span><span></span><span></span></div>
@@ -291,6 +292,8 @@ npx @cobusgreyling/loop-audit . --suggest
 <span class="cmd">/loop</span> <span class="flag">1d</span> Run changelog-scan + draft-release-notes. Write RELEASE_NOTES_DRAFT.md. Human review only.</pre>
   </div>
   <p style="margin-top: 24px; text-align: center;">
+    <a href="https://github.com/cobusgreyling/loop-engineering/blob/main/docs/QUICKSTART.md">Quickstart guide</a>
+    ·
     <a href="https://github.com/cobusgreyling/loop-engineering/tree/main/starters">All starters</a>
     ·
     <a href="https://github.com/cobusgreyling/loop-engineering/blob/main/docs/loop-design-checklist.md">Design checklist</a>
@@ -319,6 +322,7 @@ npx @cobusgreyling/loop-audit . --suggest
 
     <div id="reco-output" class="reco-card" style="display:none;">
       <strong>Recommended:</strong> <span id="reco-name"></span> <span id="reco-meta" style="color:var(--text-muted);"></span><br>
+      <div id="reco-cost" class="reco-cost" style="display:none;"></div>
       <span style="font-size:0.8rem;">Scaffold:</span> <code id="reco-npx" class="cmd"></code> <button onclick="copyRecoNpx()" class="copy-btn">Copy</button><br>
       <span style="font-size:0.8rem;">First run (report-only):</span> <code id="reco-loop" style="font-family:var(--font-mono);"></code>
       <div style="margin-top:8px;">
@@ -478,6 +482,8 @@ npx @cobusgreyling/loop-audit . --suggest
   <p>
     <a href="https://github.com/cobusgreyling/loop-engineering">GitHub</a>
     ·
+    <a href="https://github.com/cobusgreyling/loop-engineering/blob/main/docs/QUICKSTART.md">Quickstart</a>
+    ·
     <a href="https://cobusgreyling.substack.com/p/loop-engineering">Essay</a>
     ·
     <a href="https://addyosmani.com/blog/loop-engineering/">Addy Osmani</a>
@@ -509,11 +515,101 @@ function copyNpxAudit() {
   setTimeout(() => t.textContent = orig || 'Copy', 1400);
 }
 
+// === loop-cost estimator (client port of tools/loop-cost/src/estimator.ts) ===
+const INTERVAL_MS = { m: 60_000, h: 3_600_000, d: 86_400_000 };
+
+const REGISTRY_COSTS = {
+  'ci-sweeper': { cadence: '5m-15m', token_cost: 'very-high', cost: { tokens_noop: 5000, tokens_report: 50000, tokens_action: 200000, suggested_daily_cap: 1000000, early_exit_required: true } },
+  'pr-babysitter': { cadence: '5m-15m', token_cost: 'high', cost: { tokens_noop: 3000, tokens_report: 80000, tokens_action: 250000, suggested_daily_cap: 2000000, early_exit_required: true } },
+  'daily-triage': { cadence: '1d-2h', token_cost: 'low', cost: { tokens_noop: 5000, tokens_report: 50000, tokens_action: 200000, suggested_daily_cap: 100000, early_exit_required: false } },
+  'dependency-sweeper': { cadence: '6h-1d', token_cost: 'medium', cost: { tokens_noop: 5000, tokens_report: 60000, tokens_action: 300000, suggested_daily_cap: 500000, early_exit_required: true } },
+  'post-merge-cleanup': { cadence: '1d-6h', token_cost: 'low', cost: { tokens_noop: 5000, tokens_report: 40000, tokens_action: 150000, suggested_daily_cap: 200000, early_exit_required: false } },
+  'changelog-drafter': { cadence: '1d', token_cost: 'low', cost: { tokens_noop: 5000, tokens_report: 35000, tokens_action: 80000, suggested_daily_cap: 100000, early_exit_required: false } },
+  'issue-triage': { cadence: '2h-1d', token_cost: 'low', cost: { tokens_noop: 3000, tokens_report: 30000, tokens_action: 60000, suggested_daily_cap: 80000, early_exit_required: false } }
+};
+
+function parseInterval(token) {
+  const m = token.match(/^(\d+)([mhd])$/);
+  if (!m) return null;
+  return Number(m[1]) * INTERVAL_MS[m[2]];
+}
+
+function runsPerDayForInterval(interval) {
+  const ms = parseInterval(interval);
+  return ms ? Math.floor(86_400_000 / ms) : 1;
+}
+
+function cadenceToRunsPerDay(cadence, conservative = false) {
+  const parts = cadence.split('-').map(p => p.trim());
+  if (parts.length === 1) return runsPerDayForInterval(parts[0]);
+  const runs = parts.map(runsPerDayForInterval);
+  return conservative ? Math.min(...runs) : Math.max(...runs);
+}
+
+function formatTokens(n) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return String(n);
+}
+
+function realisticMix(level, earlyExitRequired) {
+  if (level === 'L1') {
+    return earlyExitRequired
+      ? { noop: 0.9, report: 0.1, action: 0 }
+      : { noop: 0.6, report: 0.4, action: 0 };
+  }
+  if (level === 'L2') {
+    return earlyExitRequired
+      ? { noop: 0.85, report: 0.1, action: 0.05 }
+      : { noop: 0.5, report: 0.3, action: 0.2 };
+  }
+  return { noop: 0.4, report: 0.35, action: 0.25 };
+}
+
+function estimatePatternCost(patternId, level, cadence) {
+  const entry = REGISTRY_COSTS[patternId];
+  if (!entry) return null;
+  const runsPerDay = cadenceToRunsPerDay(cadence);
+  const { cost } = entry;
+  const mix = realisticMix(level, cost.early_exit_required);
+  const realisticPerRun =
+    cost.tokens_noop * mix.noop +
+    cost.tokens_report * mix.report +
+    cost.tokens_action * mix.action;
+  const realisticDay = Math.round(realisticPerRun * runsPerDay);
+  const overCap = realisticDay > cost.suggested_daily_cap;
+  return {
+    patternId,
+    level,
+    cadence,
+    runsPerDay,
+    tokenCostTier: entry.token_cost,
+    realisticDay,
+    suggestedDailyCap: cost.suggested_daily_cap,
+    overCap,
+    earlyExitRequired: cost.early_exit_required
+  };
+}
+
+function formatCostSummary(estimate) {
+  if (!estimate) return '';
+  const capNote = estimate.overCap
+    ? ` · <span style="color:#ffb347;">above suggested cap</span>`
+    : '';
+  const earlyExit = estimate.earlyExitRequired
+    ? ' · early-exit required when watchlist empty'
+    : '';
+  return `<strong>~${formatTokens(estimate.realisticDay)} tokens/day</strong> at ${estimate.level} (${estimate.cadence}, ${estimate.runsPerDay} run${estimate.runsPerDay === 1 ? '' : 's'}/day) · cap ${formatTokens(estimate.suggestedDailyCap)}/day · tier ${estimate.tokenCostTier}${capNote}${earlyExit}<br><span style="font-size:0.75rem;">Refine: <code>npx @cobusgreyling/loop-cost --pattern ${estimate.patternId} --level ${estimate.level} --cadence ${estimate.cadence}</code></span>`;
+}
+
 // === Interactive Pattern Picker ===
 const PATTERNS = {
   ci: {
     name: 'CI Sweeper',
     meta: '5–15m • Medium risk • L2 cautious',
+    patternId: 'ci-sweeper',
+    costLevel: 'L2',
+    costCadence: '15m',
     npx: 'npx @cobusgreyling/loop-init . --pattern ci-sweeper --tool grok',
     loop: '/loop 15m Run ci-triage on failing CI. Update ci-sweeper-state.md. Fix only regressions in worktree. Max 3 attempts.',
     patternHref: 'https://github.com/cobusgreyling/loop-engineering/blob/main/patterns/ci-sweeper.md',
@@ -522,6 +618,9 @@ const PATTERNS = {
   prs: {
     name: 'PR Babysitter',
     meta: '5–15m • Medium risk • L1 watch → L2',
+    patternId: 'pr-babysitter',
+    costLevel: 'L1',
+    costCadence: '10m',
     npx: 'npx @cobusgreyling/loop-init . --pattern pr-babysitter --tool grok',
     loop: '/loop 10m Run pr-review-triage. Update pr-babysitter-state.md. Worktree + verifier. No auto-merge by default.',
     patternHref: 'https://github.com/cobusgreyling/loop-engineering/blob/main/patterns/pr-babysitter.md',
@@ -530,6 +629,9 @@ const PATTERNS = {
   morning: {
     name: 'Daily Triage',
     meta: '1d–2h • Low risk • Start here (L1)',
+    patternId: 'daily-triage',
+    costLevel: 'L1',
+    costCadence: '1d',
     npx: 'npx @cobusgreyling/loop-init . --pattern daily-triage --tool grok',
     loop: '/loop 1d Run loop-triage. Update STATE.md. No auto-fix in week one.',
     patternHref: 'https://github.com/cobusgreyling/loop-engineering/blob/main/patterns/daily-triage.md',
@@ -538,6 +640,9 @@ const PATTERNS = {
   deps: {
     name: 'Dependency Sweeper',
     meta: '6h–1d • Medium risk • Patch-only first',
+    patternId: 'dependency-sweeper',
+    costLevel: 'L2',
+    costCadence: '6h',
     npx: 'npx @cobusgreyling/loop-init . --pattern dependency-sweeper --tool grok',
     loop: '/loop 6h Run dependency-triage. Patch-only auto-fix in worktree + verifier. Escalate majors.',
     patternHref: 'https://github.com/cobusgreyling/loop-engineering/blob/main/patterns/dependency-sweeper.md',
@@ -546,6 +651,9 @@ const PATTERNS = {
   debt: {
     name: 'Post-Merge Cleanup',
     meta: '1d–6h • Low risk • Off-peak L1',
+    patternId: 'post-merge-cleanup',
+    costLevel: 'L1',
+    costCadence: '1d',
     npx: 'npx @cobusgreyling/loop-init . --pattern post-merge-cleanup --tool grok',
     loop: '/loop 1d Run post-merge-scan on recent merges. Update post-merge-state.md. Small fixes only.',
     patternHref: 'https://github.com/cobusgreyling/loop-engineering/blob/main/patterns/post-merge-cleanup.md',
@@ -554,6 +662,9 @@ const PATTERNS = {
   releases: {
     name: 'Changelog Drafter',
     meta: '1d or tag • Low risk • New favorite',
+    patternId: 'changelog-drafter',
+    costLevel: 'L1',
+    costCadence: '1d',
     npx: 'npx @cobusgreyling/loop-init . --pattern changelog-drafter --tool grok',
     loop: '/loop 1d Run changelog-scan + draft-release-notes. Write RELEASE_NOTES_DRAFT.md. Human review only.',
     patternHref: 'https://github.com/cobusgreyling/loop-engineering/blob/main/patterns/changelog-drafter.md',
@@ -562,6 +673,9 @@ const PATTERNS = {
   issues: {
     name: 'Issue Triage',
     meta: '2h–1d • Low risk • Pairs with Daily Triage',
+    patternId: 'issue-triage',
+    costLevel: 'L1',
+    costCadence: '1d',
     npx: 'npx @cobusgreyling/loop-init . --pattern issue-triage --tool grok',
     loop: '/loop 1d Run issue-triage. Update issue-triage-state.md. Propose labels and priorities only — no auto-close.',
     patternHref: 'https://github.com/cobusgreyling/loop-engineering/blob/main/patterns/issue-triage.md',
@@ -593,6 +707,13 @@ function setupPatternPicker() {
     document.getElementById('reco-loop').textContent = p.loop;
     document.getElementById('reco-link').href = p.patternHref;
     document.getElementById('reco-starter').href = p.starterHref;
+
+    const costEl = document.getElementById('reco-cost');
+    if (costEl && p.patternId) {
+      const estimate = estimatePatternCost(p.patternId, p.costLevel, p.costCadence);
+      costEl.innerHTML = formatCostSummary(estimate);
+      costEl.style.display = estimate ? 'block' : 'none';
+    }
 
     output.style.display = 'block';
     current = p;
