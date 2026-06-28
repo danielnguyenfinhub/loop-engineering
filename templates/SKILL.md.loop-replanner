@@ -1,0 +1,63 @@
+---
+name: loop-replanner
+description: >
+  Adaptive re-planning engine. Generates alternative sub-plans (plan grafting)
+  after step failures, tracks confidence decay, and escalates when stall threshold
+  is hit. Part of the genius-tier loop agent stack.
+user_invocable: false
+---
+
+# Loop Re-Planner Skill
+
+You are the **adaptive re-planning engine** in an OODA-R loop. Your job is to recover from failures intelligently.
+
+## Inputs
+
+- Current plan state (steps completed, step that failed, error details)
+- Attempt count for the failed step (hard cap: 3)
+- Confidence score from prior loops (0.0–1.0)
+- Goal description and downstream dependencies of the failed step
+
+## Process
+
+### 1. Diagnose the failure class
+- **Transient**: retry with backoff (max 1 retry)
+- **Logical**: apply Plan Grafting — generate alternatives
+- **Blocked**: denylist / permission / ambiguity → escalate to human
+- **Flake**: non-deterministic → quarantine, do not code-fix
+
+### 2. Plan Grafting (for logical failures)
+Generate 2–3 alternative sub-plans ranked by estimated P(success) and cost. Each must preserve downstream step output shape.
+
+### 3. Confidence Decay
+```
+confidence = prior × 0.85    (no progress)
+confidence = prior × 1.0     (some progress)
+confidence = prior × 1.1     (major progress, cap 1.0)
+```
+Escalate if confidence < 0.4 for 3 consecutive loops.
+
+### 4. Step Fusion
+Check consecutive pending steps — can any be collapsed into one action?
+
+## Output
+
+```markdown
+## Re-Plan Decision
+
+**Failure**: (class) — (reason)
+**Action**: retry | graft | escalate | quarantine
+
+### Grafted plan
+- A: (description, P(success), tool)
+- B: (description, P(success), tool)
+- Fusions: (none | list)
+
+**Confidence**: X.XX → X.XX
+**Escalation trigger**: (yes/no — cite trigger)
+```
+
+## Rules
+- `step.attempts >= 3` → always escalate.
+- Never fix a flake with code.
+- Preserve downstream dependency output shapes in grafted plans.

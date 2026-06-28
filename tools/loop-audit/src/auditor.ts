@@ -23,6 +23,11 @@ export interface LoopSignals {
     budgetSkill: boolean;
   };
   loopActivity: { present: boolean; evidence: string[] };
+  // Genius-tier signals (from Ultimate Looping Agent blueprint)
+  circuitBreaker: { present: boolean };
+  denylistConfig: { present: boolean };
+  escalationPolicy: { present: boolean };
+  structuredRunLog: { present: boolean };
 }
 
 export interface Finding {
@@ -72,6 +77,11 @@ const SCORE_WEIGHTS = {
   loopMdBudget: 2,
   budgetSkill: 2,
   loopActivity: 6,
+  // Genius-tier signals
+  circuitBreaker: 5,
+  denylistConfig: 4,
+  escalationPolicy: 3,
+  structuredRunLog: 2,
 } as const;
 
 const LEVEL_THRESHOLDS = {
@@ -92,12 +102,24 @@ const LOOP_SKILL_NAMES = [
   'changelog-scan',
   'draft-release-notes',
   'issue-triage',
+  // Genius-tier skills (blueprint §4)
+  'loop-replanner',
+  'loop-escalation',
 ];
 
 const SAFETY_FILES = ['safety.md', 'docs/safety.md', 'SECURITY.md'];
 const MCP_FILES = ['.mcp.json', 'mcp.json', '.mcp/config.json'];
 const WORKTREE_HINTS = ['worktree', 'worktrees', 'git worktree'];
 const BUDGET_HINTS = [/budget/i, /max tokens/i, /token cap/i, /kill switch/i, /loop-pause-all/i];
+
+// Genius-tier detection patterns (blueprint §4)
+const CIRCUIT_BREAKER_HINTS = [
+  /max.?iterations?/i, /max.?attempts?/i, /circuit.?breaker/i, /stall.?detection/i,
+  /kill.?switch/i, /loop.?pause/i, /confidence.?decay/i, /min.?progress/i,
+];
+const DENYLIST_HINTS = [/denylist/i, /deny.?list/i, /never.?edit/i, /\.env/i, /auth\//i, /payments\//i];
+const ESCALATION_HINTS = [/escalat/i, /human.?gate/i, /notify.?human/i, /human.?inbox/i, /batch.?question/i];
+const STRUCTURED_LOG_HINTS = [/"run_id"/i, /"pattern"/i, /"outcome"/i, /"tokens_estimate"/i];
 
 async function fileExists(p: string): Promise<boolean> {
   try {
@@ -236,6 +258,10 @@ export function computeScore(signals: LoopSignals): { score: number; level: 'L0'
   if (signals.cost.loopMdBudget) score += w.loopMdBudget;
   if (signals.cost.budgetSkill) score += w.budgetSkill;
   if (signals.loopActivity.present) score += w.loopActivity;
+  if (signals.circuitBreaker.present) score += w.circuitBreaker;
+  if (signals.denylistConfig.present) score += w.denylistConfig;
+  if (signals.escalationPolicy.present) score += w.escalationPolicy;
+  if (signals.structuredRunLog.present) score += w.structuredRunLog;
 
   score = Math.min(100, Math.max(0, score));
 
@@ -252,18 +278,23 @@ export function computeScore(signals: LoopSignals): { score: number; level: 'L0'
   else if (score >= LEVEL_THRESHOLDS.L1 && signals.stateFile.present) level = 'L1';
   else level = 'L0';
 
+  const hasGeniusTier =
+    signals.circuitBreaker.present && signals.denylistConfig.present && signals.escalationPolicy.present;
+
   const assessment =
-    score >= 82 && l3Ready
-      ? 'Strong loop readiness — good candidate for L3 with explicit gates.'
-      : score >= 82 && !costReady
-        ? 'Strong signals but missing cost observability (loop-budget.md, loop-run-log.md, LOOP.md budget) — add before L3.'
-        : score >= 82 && !hasRealActivity
-          ? 'Strong structure but no proven loop runs yet — run one L1 cycle and commit state before L3.'
-          : score >= 62
-            ? 'Good foundation — add missing verifier + safety docs for L3.'
-            : score >= 42
-              ? 'Early loop setup — focus on L1 state + triage before enabling actions.'
-              : 'Not loop-ready — start with a starter from this repo (minimal-loop or pr-babysitter).';
+    score >= 82 && l3Ready && hasGeniusTier
+      ? 'Genius-tier loop readiness — circuit breakers, denylist, and escalation protocol present. Production-grade unattended operation possible.'
+      : score >= 82 && l3Ready && !hasGeniusTier
+        ? 'Strong loop readiness (L3 capable) — add circuit breakers, denylist config, and escalation policy for genius-tier operation.'
+        : score >= 82 && !costReady
+          ? 'Strong signals but missing cost observability (loop-budget.md, loop-run-log.md, LOOP.md budget) — add before L3.'
+          : score >= 82 && !hasRealActivity
+            ? 'Strong structure but no proven loop runs yet — run one L1 cycle and commit state before L3.'
+            : score >= 62
+              ? 'Good foundation — add missing verifier + safety docs for L3.'
+              : score >= 42
+                ? 'Early loop setup — focus on L1 state + triage before enabling actions.'
+                : 'Not loop-ready — start with a starter from this repo (minimal-loop or pr-babysitter).';
 
   return { score, level, assessment };
 }
@@ -357,6 +388,58 @@ export async function auditProject(target: string): Promise<AuditResult> {
 
   const loopActivity = await detectLoopActivity(root);
 
+  // Genius-tier signal detection (blueprint §4)
+  const geniusCandidates = ['LOOP.md', 'STATE.md', 'loop-budget.md', 'AGENTS.md'];
+  let circuitBreakerFound = false;
+  let denylistFound = false;
+  let escalationFound = false;
+  let structuredRunLogFound = false;
+
+  for (const f of geniusCandidates) {
+    try {
+      const p = path.join(root, f);
+      if (await fileExists(p)) {
+        const txt = await readFile(p, 'utf8');
+        if (!circuitBreakerFound && CIRCUIT_BREAKER_HINTS.some((re) => re.test(txt))) circuitBreakerFound = true;
+        if (!denylistFound && DENYLIST_HINTS.some((re) => re.test(txt))) denylistFound = true;
+        if (!escalationFound && ESCALATION_HINTS.some((re) => re.test(txt))) escalationFound = true;
+      }
+    } catch {}
+  }
+
+  // Also search skills content for denylist, circuit breaker, escalation hints
+  const skillCandidateDirs = [
+    path.join(root, '.grok', 'skills'),
+    path.join(root, '.claude', 'skills'),
+    path.join(root, '.codex', 'skills'),
+    path.join(root, 'skills'),
+  ];
+  for (const dir of skillCandidateDirs) {
+    if (!(await fileExists(dir))) continue;
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      const skillFile = path.join(dir, e.name, 'SKILL.md');
+      try {
+        if (await fileExists(skillFile)) {
+          const txt = await readFile(skillFile, 'utf8');
+          if (!circuitBreakerFound && CIRCUIT_BREAKER_HINTS.some((re) => re.test(txt))) circuitBreakerFound = true;
+          if (!denylistFound && DENYLIST_HINTS.some((re) => re.test(txt))) denylistFound = true;
+          if (!escalationFound && ESCALATION_HINTS.some((re) => re.test(txt))) escalationFound = true;
+        }
+      } catch {}
+    }
+  }
+
+  // Structured run log: check if loop-run-log.md contains JSON entries
+  try {
+    const runLogPath = path.join(root, 'loop-run-log.md');
+    if (await fileExists(runLogPath)) {
+      const txt = await readFile(runLogPath, 'utf8');
+      if (STRUCTURED_LOG_HINTS.some((re) => re.test(txt))) structuredRunLogFound = true;
+    }
+  } catch {}
+
   const signals: LoopSignals = {
     stateFile: { present: statePaths.length > 0, paths: statePaths },
     loopConfig: { present: loopMd, path: loopMd ? 'LOOP.md' : undefined },
@@ -373,6 +456,10 @@ export async function auditProject(target: string): Promise<AuditResult> {
     registry: { present: registryPresent },
     cost: { budgetDoc, runLog, loopMdBudget, budgetSkill },
     loopActivity,
+    circuitBreaker: { present: circuitBreakerFound },
+    denylistConfig: { present: denylistFound },
+    escalationPolicy: { present: escalationFound },
+    structuredRunLog: { present: structuredRunLogFound },
   };
 
   if (!signals.stateFile.present) {
@@ -474,6 +561,35 @@ export async function auditProject(target: string): Promise<AuditResult> {
     recommendations.push('Run one loop (report-only), update + commit STATE.md (or pattern state). This turns structure into proven usage.');
   } else {
     findings.push({ level: 'ok', message: `Loop activity detected — real usage signals present (${signals.loopActivity.evidence.length} sources).` });
+  }
+
+  // Genius-tier findings (blueprint §4 — Self-Monitoring & Safety)
+  if (!signals.circuitBreaker.present) {
+    findings.push({ level: 'warn', message: 'No circuit breaker config detected — max attempts, stall detection, and kill switch undocumented.' });
+    recommendations.push('Add circuit breaker rules to LOOP.md: max_iterations, max_attempts (hard cap 3), kill switch label, and stall threshold');
+  } else {
+    findings.push({ level: 'ok', message: 'Circuit breaker / safety limits documented.' });
+  }
+
+  if (!signals.denylistConfig.present) {
+    findings.push({ level: 'warn', message: 'No denylist paths found — loop may modify secrets, auth, or payments without a guard.' });
+    recommendations.push('Add denylist section to LOOP.md or skills: .env, auth/, payments/, *_key*, *_secret*, migrations/');
+  } else {
+    findings.push({ level: 'ok', message: 'Denylist path configuration present.' });
+  }
+
+  if (!signals.escalationPolicy.present) {
+    findings.push({ level: 'warn', message: 'No escalation policy detected — loop may grind silently when blocked.' });
+    recommendations.push('Document escalation triggers in LOOP.md (max attempts, ambiguity, denylist touch) and add the loop-escalation skill');
+  } else {
+    findings.push({ level: 'ok', message: 'Escalation policy documented.' });
+  }
+
+  if (!signals.structuredRunLog.present && runLog) {
+    findings.push({ level: 'warn', message: 'loop-run-log.md exists but no structured JSON entries detected — debugging multi-iteration runs is harder.' });
+    recommendations.push('Follow the run log format in templates/loop-run-log.md.template: JSON entries with run_id, pattern, outcome, tokens_estimate');
+  } else if (signals.structuredRunLog.present) {
+    findings.push({ level: 'ok', message: 'Structured JSON run log present — iteration debugging enabled.' });
   }
 
   const { score, level, assessment } = computeScore(signals);

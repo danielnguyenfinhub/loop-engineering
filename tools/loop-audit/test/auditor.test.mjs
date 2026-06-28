@@ -24,6 +24,10 @@ function emptySignals() {
     registry: { present: false },
     cost: { budgetDoc: false, runLog: false, loopMdBudget: false, budgetSkill: false },
     loopActivity: { present: false, evidence: [] },
+    circuitBreaker: { present: false },
+    denylistConfig: { present: false },
+    escalationPolicy: { present: false },
+    structuredRunLog: { present: false },
   };
 }
 
@@ -183,6 +187,70 @@ test('auditProject: L2 with verifier skill', async () => {
     const result = await auditProject(dir);
     assert.equal(result.level, 'L2');
     assert.ok(result.signals.verifier.present);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('computeScore: genius-tier signals add points', () => {
+  const base = emptySignals();
+  base.stateFile = { present: true, paths: ['STATE.md'] };
+  base.triage = { present: true };
+  const { score: baseScore } = computeScore(base);
+
+  const genius = emptySignals();
+  genius.stateFile = { present: true, paths: ['STATE.md'] };
+  genius.triage = { present: true };
+  genius.circuitBreaker = { present: true };
+  genius.denylistConfig = { present: true };
+  genius.escalationPolicy = { present: true };
+  genius.structuredRunLog = { present: true };
+  const { score: geniusScore } = computeScore(genius);
+
+  assert.ok(geniusScore > baseScore, 'genius-tier signals should increase score');
+});
+
+test('auditProject: circuit breaker detected in LOOP.md', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'loop-audit-cb-'));
+  try {
+    await writeFile(path.join(dir, 'STATE.md'), '# State\n');
+    await writeFile(
+      path.join(dir, 'LOOP.md'),
+      '# Loop\n\n- max_attempts: 3\n- kill switch: loop-pause-all\n- stall detection: 5 loops\n',
+    );
+    const result = await auditProject(dir);
+    assert.ok(result.signals.circuitBreaker.present, 'circuit breaker should be detected');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('auditProject: denylist detected in skill', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'loop-audit-dl-'));
+  try {
+    await writeFile(path.join(dir, 'STATE.md'), '# State\n');
+    await mkdir(path.join(dir, '.grok', 'skills', 'minimal-fix'), { recursive: true });
+    await writeFile(
+      path.join(dir, '.grok', 'skills', 'minimal-fix', 'SKILL.md'),
+      '# Fix\n\nNever edit denylist paths: .env, auth/, payments/\n',
+    );
+    const result = await auditProject(dir);
+    assert.ok(result.signals.denylistConfig.present, 'denylist should be detected in skills');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('auditProject: structured run log detected', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'loop-audit-rl-'));
+  try {
+    await writeFile(path.join(dir, 'STATE.md'), '# State\n');
+    await writeFile(
+      path.join(dir, 'loop-run-log.md'),
+      '# Run Log\n\n```json\n{"run_id":"2026-06-28T08:00:00Z","pattern":"daily-triage","outcome":"no-op","tokens_estimate":4500}\n```\n',
+    );
+    const result = await auditProject(dir);
+    assert.ok(result.signals.structuredRunLog.present, 'structured run log should be detected');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
