@@ -53,6 +53,18 @@ export interface LoopSignals {
         present: boolean;
         evidence: string[];
     };
+    circuitBreaker: {
+        present: boolean;
+    };
+    denylistConfig: {
+        present: boolean;
+    };
+    escalationPolicy: {
+        present: boolean;
+    };
+    structuredRunLog: {
+        present: boolean;
+    };
 }
 export interface Finding {
     level: 'ok' | 'warn' | 'fail';

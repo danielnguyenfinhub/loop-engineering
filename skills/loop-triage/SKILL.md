@@ -37,6 +37,13 @@ Produce a markdown report with these sections:
 ### 4. State Updates
 - Any facts the loop should remember for the next run (e.g. "PR #1234 now has 2 approvals")
 
+### 5. Loop Health Check
+Before finishing triage, report the loop's own health:
+- **Kill switch**: is `loop-pause-all` set in STATE.md? If yes → halt immediately, do not proceed.
+- **Budget**: is token spend approaching the daily cap in loop-budget.md? If >80% → flag.
+- **Stall**: has the same High-Priority item appeared for 3+ consecutive runs? → escalate to human.
+- **Attempt cap**: is any item at `attempts >= 3` with no resolution? → move to Human Inbox.
+
 ## Rules
 
 - Be brutally concise. The loop (and the human reading the state) will thank you.
@@ -44,3 +51,4 @@ Produce a markdown report with these sections:
 - When in doubt, put it in Watch or Noise rather than creating work.
 - Never propose architectural overhauls during triage — this skill is for signal, not invention.
 - Respect the project's existing skills and conventions (they will be provided in context).
+- Always run the Loop Health Check (§5) — a paused or over-budget loop must not proceed to action.

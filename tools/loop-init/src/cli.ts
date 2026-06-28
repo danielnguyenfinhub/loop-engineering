@@ -37,6 +37,14 @@ const TOOL_SUFFIX: Record<Tool, string> = {
 
 const L2_PATTERNS = new Set<Pattern>(['ci-sweeper', 'dependency-sweeper']);
 
+// Patterns that benefit from genius-tier skills (re-planner + escalation manager)
+const GENIUS_TIER_PATTERNS = new Set<Pattern>([
+  'pr-babysitter',
+  'ci-sweeper',
+  'dependency-sweeper',
+  'post-merge-cleanup',
+]);
+
 const PATTERNS_NEEDING_FIX: Set<Pattern> = new Set([
   'pr-babysitter',
   'ci-sweeper',
@@ -162,6 +170,18 @@ async function copyTemplateVerifier(
 
   const src = path.join(templatesRoot, 'SKILL.md.verifier');
   await copyFile(src, dest, dryRun);
+}
+
+async function copyGeniusTierSkills(
+  pattern: Pattern,
+  tool: Tool,
+  targetDir: string,
+  templatesRoot: string,
+  dryRun: boolean,
+) {
+  if (!GENIUS_TIER_PATTERNS.has(pattern)) return;
+  await copyTemplateSkill(templatesRoot, 'SKILL.md.loop-replanner', targetDir, tool, 'loop-replanner', dryRun);
+  await copyTemplateSkill(templatesRoot, 'SKILL.md.loop-escalation', targetDir, tool, 'loop-escalation', dryRun);
 }
 
 async function copyL2Templates(
@@ -322,6 +342,10 @@ Options:
   --dry-run       Print actions without copying
   -h, --help      This help
 
+Genius-tier skills (auto-scaffolded for L2+ patterns):
+  loop-replanner    Adaptive re-planning with plan grafting and confidence decay
+  loop-escalation   Smart human escalation with batching and async continuation
+
 Examples:
   npx @cobusgreyling/loop-init . --pattern daily-triage --tool grok
   npx @cobusgreyling/loop-init . -p pr-babysitter -t claude
@@ -418,6 +442,7 @@ Examples:
   }
 
   await copyL2Templates(pattern, tool, targetDir, templatesRoot, dryRun);
+  await copyGeniusTierSkills(pattern, tool, targetDir, templatesRoot, dryRun);
   await scaffoldObservability(pattern, tool, targetDir, templatesRoot, dryRun);
 
   if (!dryRun && !(await exists(path.join(targetDir, 'AGENTS.md')))) {

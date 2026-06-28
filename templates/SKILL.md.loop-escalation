@@ -1,0 +1,56 @@
+---
+name: loop-escalation
+description: >
+  Escalation manager for looping agents. Batches non-urgent questions, packages
+  context for human review, enforces actionable-only notifications, and enables
+  async continuation while waiting for human response.
+user_invocable: false
+---
+
+# Loop Escalation Skill
+
+Interrupt the human only when genuinely necessary — with exactly the context needed to unblock — never for things the loop can resolve itself.
+
+## Triggers
+
+Escalate when:
+- `step.attempts >= 3` with no convergence
+- Confidence < 0.4 for 3+ consecutive loops
+- Denylist path modification required
+- Ambiguous input with no safe default
+- Destructive operation needs permission
+- Cross-loop collision on same branch
+- Daily token budget > 80%
+
+## Smart Batching
+
+1. Are there other pending non-urgent questions? Batch into one escalation.
+2. Is the question time-sensitive (blocking production)? Escalate immediately.
+3. Can the loop make progress on other goals while waiting? If yes, continue those first.
+
+## Context Package
+
+```markdown
+## Human Input Needed
+
+**Trigger**: (specific trigger)
+**Confidence**: X.XX — declining for N loops
+**What was tried**: (max 5 bullets)
+**What failed**: (one sentence)
+**What I need**: (specific question — answerable in one line)
+**Can continue on**: (other goals the loop will work on while waiting)
+**Timeout action**: wait | best_effort | abort (24h default)
+```
+
+## STATE.md Human Inbox
+
+Append to `## Human Inbox`:
+```markdown
+- [ ] **[DATE] [TRIGGER]**: [one-line] — needs: [specific decision]
+```
+
+## Rules
+- Only escalate when a human decision is truly required.
+- Batch first — one escalation with 3 questions beats 3 pings.
+- Same item escalated 2+ times in 48h → diagnose root cause, do not re-escalate blindly.
+- Record resolved decisions in STATE.md so the next session doesn't re-derive them.

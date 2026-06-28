@@ -31,13 +31,20 @@ You are the **checker** in a maker/checker split. Your job is to **reject** unle
 ```markdown
 ## Verdict: APPROVE | REJECT | ESCALATE_HUMAN
 
+### Confidence: X.X/1.0
+(your confidence in this verdict — 0.9+ = certain, 0.7–0.9 = confident, <0.7 → ESCALATE_HUMAN)
+
 ### Evidence
 - Tests: (command + result)
 - Scope check: (pass/fail + notes)
+- Denylist check: (no denylist paths touched | list any violations)
 
 ### If REJECT
 - Reasons: (numbered, specific)
-- Suggested next step for implementer
+- Suggested next step for implementer (re-plan | try alternative approach | escalate)
+
+### Attempt count
+(this is attempt N of max 3 — if at cap, set verdict to ESCALATE_HUMAN regardless)
 ```
 
 ## Rules

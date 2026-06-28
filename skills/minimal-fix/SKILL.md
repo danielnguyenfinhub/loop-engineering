@@ -47,6 +47,6 @@ You fix **one specific problem** with the **smallest diff** that could work.
 ## Rules
 
 - One problem per invocation. Multiple failures → escalate or triage first.
-- Respect denylist paths — escalate instead of editing.
+- Respect denylist paths — escalate instead of editing. Default denylist: `.env`, `.env.*`, `**/secrets/**`, `**/credentials/**`, `**/*_key*`, `**/*_secret*`, `.terraform/**`, `k8s/production/**`, `**/migrations/**`, `auth/**`, `payments/**`, `billing/**`.
 - Prefer worktree isolation when the loop runs unattended.
 - Do not mark your own work done — the verifier decides.
